@@ -1,0 +1,40 @@
+name: no_screen_mirror
+description: Flutter plugin to detect screen mirroring (AirPlay, Miracast) and external display connections (HDMI, USB-C).
+version: 0.1.0
+homepage: https://flutterplaza.com
+repository: https://github.com/FlutterPlaza/no_screen_mirror
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.8
+  web: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ">=4.0.0 <6.0.0"
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.flutterplaza.no_screen_mirror
+        pluginClass: NoScreenMirrorPlugin
+      ios:
+        pluginClass: NoScreenMirrorPlugin
+      macos:
+        pluginClass: MacOSNoScreenMirrorPlugin
+      linux:
+        pluginClass: NoScreenMirrorPlugin
+      windows:
+        pluginClass: NoScreenMirrorPlugin
+      web:
+        pluginClass: NoScreenMirrorWeb
+        fileName: no_screen_mirror_web.dart
