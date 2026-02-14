@@ -2,11 +2,13 @@ class MirrorSnapshot {
   final bool isScreenMirrored;
   final bool isExternalDisplayConnected;
   final int displayCount;
+  final bool isScreenShared;
 
   MirrorSnapshot({
     required this.isScreenMirrored,
     required this.isExternalDisplayConnected,
     required this.displayCount,
+    this.isScreenShared = false,
   });
 
   factory MirrorSnapshot.fromMap(Map<String, dynamic> map) {
@@ -15,6 +17,7 @@ class MirrorSnapshot {
       isExternalDisplayConnected:
           map['is_external_display_connected'] as bool? ?? false,
       displayCount: map['display_count'] as int? ?? 1,
+      isScreenShared: map['is_screen_shared'] as bool? ?? false,
     );
   }
 
@@ -23,12 +26,13 @@ class MirrorSnapshot {
       'is_screen_mirrored': isScreenMirrored,
       'is_external_display_connected': isExternalDisplayConnected,
       'display_count': displayCount,
+      'is_screen_shared': isScreenShared,
     };
   }
 
   @override
   String toString() {
-    return 'MirrorSnapshot(\nisScreenMirrored: $isScreenMirrored, \nisExternalDisplayConnected: $isExternalDisplayConnected, \ndisplayCount: $displayCount\n)';
+    return 'MirrorSnapshot(\nisScreenMirrored: $isScreenMirrored, \nisExternalDisplayConnected: $isExternalDisplayConnected, \ndisplayCount: $displayCount, \nisScreenShared: $isScreenShared\n)';
   }
 
   @override
@@ -38,13 +42,15 @@ class MirrorSnapshot {
     return other is MirrorSnapshot &&
         other.isScreenMirrored == isScreenMirrored &&
         other.isExternalDisplayConnected == isExternalDisplayConnected &&
-        other.displayCount == displayCount;
+        other.displayCount == displayCount &&
+        other.isScreenShared == isScreenShared;
   }
 
   @override
   int get hashCode {
     return isScreenMirrored.hashCode ^
         isExternalDisplayConnected.hashCode ^
-        displayCount.hashCode;
+        displayCount.hashCode ^
+        isScreenShared.hashCode;
   }
 }

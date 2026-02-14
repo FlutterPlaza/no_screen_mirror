@@ -8,6 +8,7 @@ public class NoScreenMirrorPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
     private var lastEventJson: String = ""
     private var hasPendingEvent: Bool = false
     private var isListening: Bool = false
+    private var pollingIntervalMs: Int = 2000
 
     private static let methodChannelName = "com.flutterplaza.no_screen_mirror_methods"
     private static let eventChannelName = "com.flutterplaza.no_screen_mirror_streams"
@@ -25,6 +26,10 @@ public class NoScreenMirrorPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "startListening":
+            if let args = call.arguments as? [String: Any],
+               let intervalMs = args["pollingIntervalMs"] as? Int, intervalMs > 0 {
+                pollingIntervalMs = intervalMs
+            }
             startDetection()
             result("Listening started")
         case "stopListening":
@@ -85,6 +90,7 @@ public class NoScreenMirrorPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
         let displayCount = screens.count
         var isExternalDisplayConnected = displayCount > 1
         var isScreenMirrored = false
+        var isScreenShared = false
 
         // Check for mirroring via UIScreen.mirrored property
         for screen in screens {
@@ -93,17 +99,16 @@ public class NoScreenMirrorPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
             }
         }
 
-        // iOS 11+: isCaptured detects AirPlay mirroring
+        // iOS 11+: isCaptured detects screen recording, AirPlay, and screen sharing
         if #available(iOS 11.0, *) {
-            if UIScreen.main.isCaptured && displayCount <= 1 {
-                isScreenMirrored = true
-            }
+            isScreenShared = UIScreen.main.isCaptured
         }
 
         let map: [String: Any] = [
             "is_screen_mirrored": isScreenMirrored,
             "is_external_display_connected": isExternalDisplayConnected,
-            "display_count": displayCount
+            "display_count": displayCount,
+            "is_screen_shared": isScreenShared
         ]
         let jsonString = convertMapToJsonString(map)
 

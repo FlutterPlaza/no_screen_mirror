@@ -1,3 +1,4 @@
+import 'package:no_screen_mirror/mirror_capabilities.dart';
 import 'package:no_screen_mirror/mirror_snapshot.dart';
 
 import 'no_screen_mirror_platform_interface.dart';
@@ -8,14 +9,23 @@ class NoScreenMirror implements NoScreenMirrorPlatform {
 
   static NoScreenMirror get instance => NoScreenMirror._();
 
+  static MirrorCapabilities get platformCapabilities =>
+      MirrorCapabilities.current;
+
   @override
   Stream<MirrorSnapshot> get mirrorStream {
     return _instancePlatform.mirrorStream;
   }
 
   @override
-  Future<void> startListening() {
-    return _instancePlatform.startListening();
+  Future<void> startListening({
+    Duration pollingInterval = const Duration(seconds: 2),
+    List<String> customScreenSharingProcesses = const [],
+  }) {
+    return _instancePlatform.startListening(
+      pollingInterval: pollingInterval,
+      customScreenSharingProcesses: customScreenSharingProcesses,
+    );
   }
 
   @override

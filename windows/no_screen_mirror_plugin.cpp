@@ -81,7 +81,7 @@ NoScreenMirrorPlugin::NoScreenMirrorPlugin(
       [this](const DisplayDetection::Result& r) { OnDisplayChanged(r); });
 
   // Initial state
-  last_event_json_ = BuildEventJson(false, false, 1);
+  last_event_json_ = BuildEventJson(false, false, 1, false);
   has_pending_event_ = true;
 }
 
@@ -105,9 +105,42 @@ void NoScreenMirrorPlugin::HandleMethodCall(
   const auto& method = method_call.method_name();
 
   if (method == "startListening") {
+    UINT poll_interval_ms = 2000;
+    std::vector<std::wstring> custom_processes;
+
+    const auto* args = std::get_if<flutter::EncodableMap>(method_call.arguments());
+    if (args != nullptr) {
+      auto interval_it = args->find(flutter::EncodableValue("pollingIntervalMs"));
+      if (interval_it != args->end()) {
+        const auto* val = std::get_if<int32_t>(&interval_it->second);
+        if (val != nullptr && *val > 0) {
+          poll_interval_ms = static_cast<UINT>(*val);
+        }
+      }
+
+      auto processes_it = args->find(flutter::EncodableValue("customProcesses"));
+      if (processes_it != args->end()) {
+        const auto* list = std::get_if<flutter::EncodableList>(&processes_it->second);
+        if (list != nullptr) {
+          for (const auto& item : *list) {
+            const auto* str = std::get_if<std::string>(&item);
+            if (str != nullptr) {
+              // Convert UTF-8 string to wide string
+              int size_needed = MultiByteToWideChar(CP_UTF8, 0, str->c_str(),
+                                                    static_cast<int>(str->size()), nullptr, 0);
+              std::wstring wstr(size_needed, 0);
+              MultiByteToWideChar(CP_UTF8, 0, str->c_str(),
+                                  static_cast<int>(str->size()), &wstr[0], size_needed);
+              custom_processes.push_back(std::move(wstr));
+            }
+          }
+        }
+      }
+    }
+
     if (!is_listening_) {
       is_listening_ = true;
-      detection_->Start();
+      detection_->Start(poll_interval_ms, custom_processes);
     }
     result->Success(flutter::EncodableValue("Listening started"));
   } else if (method == "stopListening") {
@@ -129,7 +162,8 @@ void NoScreenMirrorPlugin::OnDisplayChanged(
     const DisplayDetection::Result& detection_result) {
   std::string json = BuildEventJson(detection_result.is_screen_mirrored,
                                     detection_result.is_external_connected,
-                                    detection_result.display_count);
+                                    detection_result.display_count,
+                                    detection_result.is_screen_shared);
   if (json != last_event_json_) {
     last_event_json_ = json;
     has_pending_event_ = true;
@@ -161,12 +195,15 @@ void CALLBACK NoScreenMirrorPlugin::StreamTimerProc(HWND /*hwnd*/,
 
 std::string NoScreenMirrorPlugin::BuildEventJson(bool is_screen_mirrored,
                                                   bool is_external_connected,
-                                                  int display_count) {
+                                                  int display_count,
+                                                  bool is_screen_shared) {
   std::ostringstream oss;
   oss << "{\"is_screen_mirrored\":" << (is_screen_mirrored ? "true" : "false")
       << ",\"is_external_display_connected\":"
       << (is_external_connected ? "true" : "false")
-      << ",\"display_count\":" << display_count << "}";
+      << ",\"display_count\":" << display_count
+      << ",\"is_screen_shared\":" << (is_screen_shared ? "true" : "false")
+      << "}";
   return oss.str();
 }
 

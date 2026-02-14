@@ -1,5 +1,6 @@
 package com.flutterplaza.no_screen_mirror
 
+import android.app.Activity
 import android.content.Context
 import android.hardware.display.DisplayManager
 import android.media.MediaRouter
@@ -8,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Display
 import androidx.annotation.NonNull
+import androidx.annotation.RequiresApi
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -31,11 +33,16 @@ class NoScreenMirrorPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Act
     private var lastEventJson: String = ""
     private var hasPendingEvent: Boolean = false
     private var isListening: Boolean = false
+    private var pollingIntervalMs: Long = 2000
 
     private var displayManager: DisplayManager? = null
     private var mediaRouter: MediaRouter? = null
     private var displayListener: DisplayManager.DisplayListener? = null
     private var mediaRouterCallback: MediaRouter.Callback? = null
+
+    private var activity: Activity? = null
+    private var isScreenCaptureActive: Boolean = false
+    private var screenCaptureCallback: Any? = null
 
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         context = flutterPluginBinding.applicationContext
@@ -52,14 +59,34 @@ class NoScreenMirrorPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Act
         stopDetection()
     }
 
-    override fun onAttachedToActivity(binding: ActivityPluginBinding) {}
-    override fun onDetachedFromActivityForConfigChanges() {}
-    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {}
-    override fun onDetachedFromActivity() {}
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        activity = binding.activity
+    }
+
+    override fun onDetachedFromActivityForConfigChanges() {
+        unregisterScreenCaptureCallback()
+        activity = null
+    }
+
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        activity = binding.activity
+        if (isListening) {
+            registerScreenCaptureCallback()
+        }
+    }
+
+    override fun onDetachedFromActivity() {
+        unregisterScreenCaptureCallback()
+        activity = null
+    }
 
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: MethodChannel.Result) {
         when (call.method) {
             START_LISTENING_CONST -> {
+                val intervalMs = call.argument<Int>("pollingIntervalMs")
+                if (intervalMs != null && intervalMs > 0) {
+                    pollingIntervalMs = intervalMs.toLong()
+                }
                 startDetection()
                 result.success("Listening started")
             }
@@ -109,6 +136,8 @@ class NoScreenMirrorPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Act
             mediaRouter?.addCallback(MediaRouter.ROUTE_TYPE_LIVE_VIDEO, mediaRouterCallback)
         }
 
+        registerScreenCaptureCallback()
+
         updateState()
     }
 
@@ -121,10 +150,39 @@ class NoScreenMirrorPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Act
             mediaRouterCallback?.let { mediaRouter?.removeCallback(it) }
         }
 
+        unregisterScreenCaptureCallback()
+
         displayListener = null
         mediaRouterCallback = null
         displayManager = null
         mediaRouter = null
+    }
+
+    private fun registerScreenCaptureCallback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val act = activity ?: return
+            val callback = createScreenCaptureCallback()
+            screenCaptureCallback = callback
+            act.registerScreenCaptureCallback(act.mainExecutor, callback)
+        }
+    }
+
+    private fun unregisterScreenCaptureCallback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val act = activity ?: return
+            val callback = screenCaptureCallback as? Activity.ScreenCaptureCallback ?: return
+            act.unregisterScreenCaptureCallback(callback)
+            screenCaptureCallback = null
+            isScreenCaptureActive = false
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun createScreenCaptureCallback(): Activity.ScreenCaptureCallback {
+        return Activity.ScreenCaptureCallback {
+            isScreenCaptureActive = true
+            updateState()
+        }
     }
 
     private fun updateState() {
@@ -156,7 +214,8 @@ class NoScreenMirrorPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Act
             mapOf(
                 "is_screen_mirrored" to isScreenMirrored,
                 "is_external_display_connected" to isExternalDisplayConnected,
-                "display_count" to displayCount
+                "display_count" to displayCount,
+                "is_screen_shared" to isScreenCaptureActive
             )
         ).toString()
 

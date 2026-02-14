@@ -16,16 +16,27 @@ class NoScreenMirrorWeb extends NoScreenMirrorPlatform {
 
   Timer? _pollTimer;
   final _controller = StreamController<MirrorSnapshot>.broadcast();
+  web.EventListener? _visibilityListener;
 
   @override
   Stream<MirrorSnapshot> get mirrorStream => _controller.stream;
 
   @override
-  Future<void> startListening() async {
+  Future<void> startListening({
+    Duration pollingInterval = const Duration(seconds: 2),
+    List<String> customScreenSharingProcesses = const [],
+  }) async {
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _pollTimer = Timer.periodic(pollingInterval, (_) {
       _controller.add(_scan());
     });
+
+    // Listen for visibility changes (tab hidden/shown).
+    _visibilityListener = ((web.Event event) {
+      _controller.add(_scan());
+    }).toJS;
+    web.document.addEventListener('visibilitychange', _visibilityListener);
+
     // Emit initial state immediately.
     _controller.add(_scan());
   }
@@ -34,6 +45,11 @@ class NoScreenMirrorWeb extends NoScreenMirrorPlatform {
   Future<void> stopListening() async {
     _pollTimer?.cancel();
     _pollTimer = null;
+
+    if (_visibilityListener != null) {
+      web.document.removeEventListener('visibilitychange', _visibilityListener);
+      _visibilityListener = null;
+    }
   }
 
   MirrorSnapshot _scan() {
@@ -45,7 +61,7 @@ class NoScreenMirrorWeb extends NoScreenMirrorPlatform {
       final screen = web.window.screen;
       final jsScreen = screen as JSObject;
       final prop = jsScreen.getProperty('isExtended'.toJS);
-      if (prop.isA<JSBoolean>()) {
+      if (prop != null && prop.isA<JSBoolean>()) {
         isExtended = (prop as JSBoolean).toDart;
       }
     } catch (_) {
@@ -58,6 +74,7 @@ class NoScreenMirrorWeb extends NoScreenMirrorPlatform {
       isScreenMirrored: false, // No browser API for AirPlay/Miracast detection
       isExternalDisplayConnected: isExtended,
       displayCount: displayCount,
+      isScreenShared: false, // No browser API for screen sharing detection
     );
   }
 }

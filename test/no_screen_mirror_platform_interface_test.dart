@@ -10,7 +10,10 @@ class MockNoScreenMirrorPlatform extends NoScreenMirrorPlatform {
   Stream<MirrorSnapshot> get mirrorStream => const Stream.empty();
 
   @override
-  Future<void> startListening() async {
+  Future<void> startListening({
+    Duration pollingInterval = const Duration(seconds: 2),
+    List<String> customScreenSharingProcesses = const [],
+  }) async {
     return;
   }
 
@@ -33,20 +36,28 @@ void main() {
       expect(() => platform.mirrorStream, isNot(throwsUnimplementedError));
     });
 
-    test(
-        'startListening should not throw UnimplementedError when called',
+    test('startListening should not throw UnimplementedError when called',
         () async {
       expect(platform.startListening(), completes);
     });
 
-    test(
-        'stopListening should not throw UnimplementedError when called',
+    test('startListening with parameters should not throw UnimplementedError',
+        () async {
+      expect(
+        platform.startListening(
+          pollingInterval: const Duration(seconds: 5),
+          customScreenSharingProcesses: ['test_app'],
+        ),
+        completes,
+      );
+    });
+
+    test('stopListening should not throw UnimplementedError when called',
         () async {
       expect(platform.stopListening(), completes);
     });
 
-    test(
-        'base NoScreenMirrorPlatform.mirrorStream throws UnimplementedError',
+    test('base NoScreenMirrorPlatform.mirrorStream throws UnimplementedError',
         () {
       final basePlatform = BaseNoScreenMirrorPlatform();
       expect(() => basePlatform.mirrorStream, throwsUnimplementedError);
@@ -56,16 +67,14 @@ void main() {
         'base NoScreenMirrorPlatform.startListening() throws UnimplementedError',
         () {
       final basePlatform = BaseNoScreenMirrorPlatform();
-      expect(
-          () => basePlatform.startListening(), throwsUnimplementedError);
+      expect(() => basePlatform.startListening(), throwsUnimplementedError);
     });
 
     test(
         'base NoScreenMirrorPlatform.stopListening() throws UnimplementedError',
         () {
       final basePlatform = BaseNoScreenMirrorPlatform();
-      expect(
-          () => basePlatform.stopListening(), throwsUnimplementedError);
+      expect(() => basePlatform.stopListening(), throwsUnimplementedError);
     });
   });
 }

@@ -29,7 +29,8 @@ struct _NoScreenMirrorPlugin {
 
 gchar* build_mirror_event_json(gboolean is_screen_mirrored,
                                gboolean is_external_display_connected,
-                               gint display_count);
+                               gint display_count,
+                               gboolean is_screen_shared);
 
 G_END_DECLS
 

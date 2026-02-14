@@ -22,21 +22,25 @@ G_DEFINE_TYPE(NoScreenMirrorPlugin, no_screen_mirror_plugin, g_object_get_type()
 
 gchar* build_mirror_event_json(gboolean is_screen_mirrored,
                                gboolean is_external_display_connected,
-                               gint display_count) {
+                               gint display_count,
+                               gboolean is_screen_shared) {
   return g_strdup_printf(
       "{\"is_screen_mirrored\":%s,\"is_external_display_connected\":%s,"
-      "\"display_count\":%d}",
+      "\"display_count\":%d,\"is_screen_shared\":%s}",
       is_screen_mirrored ? "true" : "false",
       is_external_display_connected ? "true" : "false",
-      display_count);
+      display_count,
+      is_screen_shared ? "true" : "false");
 }
 
 static void update_shared_state(NoScreenMirrorPlugin* self,
                                 gboolean is_external_connected,
-                                gint display_count) {
+                                gint display_count,
+                                gboolean is_screen_shared) {
   // Linux: is_screen_mirrored is always false (no kernel mirroring concept)
   g_autofree gchar* json =
-      build_mirror_event_json(FALSE, is_external_connected, display_count);
+      build_mirror_event_json(FALSE, is_external_connected, display_count,
+                              is_screen_shared);
 
   if (g_strcmp0(json, self->last_event_json) != 0) {
     g_free(self->last_event_json);
@@ -51,9 +55,11 @@ static void update_shared_state(NoScreenMirrorPlugin* self,
 
 static void on_display_changed(gboolean is_external_connected,
                                gint display_count,
+                               gboolean is_screen_shared,
                                gpointer user_data) {
   NoScreenMirrorPlugin* self = NO_SCREEN_MIRROR_PLUGIN(user_data);
-  update_shared_state(self, is_external_connected, display_count);
+  update_shared_state(self, is_external_connected, display_count,
+                      is_screen_shared);
 }
 
 // ---------------------------------------------------------------------------
@@ -69,10 +75,39 @@ static void handle_method_call(FlMethodChannel* channel,
   g_autoptr(FlMethodResponse) response = NULL;
 
   if (g_strcmp0(method, "startListening") == 0) {
+    guint poll_interval_ms = 2000;
+    const gchar** custom_processes = NULL;
+    guint custom_count = 0;
+
+    FlValue* args = fl_method_call_get_args(method_call);
+    if (args != NULL && fl_value_get_type(args) == FL_VALUE_TYPE_MAP) {
+      FlValue* interval_val = fl_value_lookup_string(args, "pollingIntervalMs");
+      if (interval_val != NULL && fl_value_get_type(interval_val) == FL_VALUE_TYPE_INT) {
+        gint64 val = fl_value_get_int(interval_val);
+        if (val > 0) poll_interval_ms = (guint)val;
+      }
+
+      FlValue* processes_val = fl_value_lookup_string(args, "customProcesses");
+      if (processes_val != NULL && fl_value_get_type(processes_val) == FL_VALUE_TYPE_LIST) {
+        custom_count = fl_value_get_length(processes_val);
+        if (custom_count > 0) {
+          custom_processes = g_new0(const gchar*, custom_count + 1);
+          for (guint i = 0; i < custom_count; i++) {
+            FlValue* item = fl_value_get_list_value(processes_val, i);
+            custom_processes[i] = fl_value_get_string(item);
+          }
+          custom_processes[custom_count] = NULL;
+        }
+      }
+    }
+
     if (!self->is_listening) {
       self->is_listening = TRUE;
-      display_detection_start(self->detection);
+      display_detection_start(self->detection, poll_interval_ms, custom_processes);
     }
+
+    g_free(custom_processes);
+
     g_autoptr(FlValue) msg = fl_value_new_string("Listening started");
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(msg));
 
@@ -206,7 +241,7 @@ void no_screen_mirror_plugin_register_with_registrar(
                                        g_object_unref);
 
   // Initial state push
-  update_shared_state(self, FALSE, 1);
+  update_shared_state(self, FALSE, 1, FALSE);
 
   g_object_unref(self);
 }

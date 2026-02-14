@@ -21,7 +21,10 @@ abstract class NoScreenMirrorPlatform extends PlatformInterface {
     throw UnimplementedError('mirrorStream has not been implemented.');
   }
 
-  Future<void> startListening() {
+  Future<void> startListening({
+    Duration pollingInterval = const Duration(seconds: 2),
+    List<String> customScreenSharingProcesses = const [],
+  }) {
     throw UnimplementedError('startListening has not been implemented.');
   }
 

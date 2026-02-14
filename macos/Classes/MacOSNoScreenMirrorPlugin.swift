@@ -8,9 +8,24 @@ public class MacOSNoScreenMirrorPlugin: NSObject, FlutterPlugin, FlutterStreamHa
     private var lastEventJson: String = ""
     private var hasPendingEvent: Bool = false
     private var isListening: Bool = false
+    private var pollingIntervalSec: Double = 2.0
+    private var screenSharingTimer: Timer? = nil
 
     private static let methodChannelName = "com.flutterplaza.no_screen_mirror_methods"
     private static let eventChannelName = "com.flutterplaza.no_screen_mirror_streams"
+
+    private static var defaultScreenSharingBundleIDs: Set<String> = [
+        "us.zoom.xos",
+        "com.microsoft.teams",
+        "com.microsoft.teams2",
+        "com.tinyspeck.slackmacgap",
+        "com.hnc.Discord",
+        "com.obsproject.obs-studio",
+        "com.apple.QuickTimePlayerX",
+        "com.loom.desktop"
+    ]
+
+    private var customScreenSharingBundleIDs: Set<String> = []
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         methodChannel = FlutterMethodChannel(name: methodChannelName, binaryMessenger: registrar.messenger)
@@ -24,6 +39,14 @@ public class MacOSNoScreenMirrorPlugin: NSObject, FlutterPlugin, FlutterStreamHa
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "startListening":
+            if let args = call.arguments as? [String: Any] {
+                if let intervalMs = args["pollingIntervalMs"] as? Int, intervalMs > 0 {
+                    pollingIntervalSec = Double(intervalMs) / 1000.0
+                }
+                if let processes = args["customProcesses"] as? [String] {
+                    customScreenSharingBundleIDs = Set(processes)
+                }
+            }
             startDetection()
             result("Listening started")
         case "stopListening":
@@ -46,6 +69,11 @@ public class MacOSNoScreenMirrorPlugin: NSObject, FlutterPlugin, FlutterStreamHa
         )
 
         updateState()
+
+        // Periodic timer for screen sharing process detection
+        screenSharingTimer = Timer.scheduledTimer(withTimeInterval: pollingIntervalSec, repeats: true) { [weak self] _ in
+            self?.updateState()
+        }
     }
 
     private func stopDetection() {
@@ -57,10 +85,26 @@ public class MacOSNoScreenMirrorPlugin: NSObject, FlutterPlugin, FlutterStreamHa
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+
+        screenSharingTimer?.invalidate()
+        screenSharingTimer = nil
     }
 
     @objc private func screenParametersDidChange() {
         updateState()
+    }
+
+    private func isScreenSharingActive() -> Bool {
+        let allBundleIDs = MacOSNoScreenMirrorPlugin.defaultScreenSharingBundleIDs
+            .union(customScreenSharingBundleIDs)
+
+        for app in NSWorkspace.shared.runningApplications {
+            if let bundleID = app.bundleIdentifier,
+               allBundleIDs.contains(bundleID) {
+                return true
+            }
+        }
+        return false
     }
 
     private func updateState() {
@@ -81,10 +125,13 @@ public class MacOSNoScreenMirrorPlugin: NSObject, FlutterPlugin, FlutterStreamHa
             }
         }
 
+        let isScreenShared = isScreenSharingActive()
+
         let map: [String: Any] = [
             "is_screen_mirrored": isScreenMirrored,
             "is_external_display_connected": isExternalDisplayConnected,
-            "display_count": displayCount
+            "display_count": displayCount,
+            "is_screen_shared": isScreenShared
         ]
         let jsonString = convertMapToJsonString(map)
 

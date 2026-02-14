@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "display_detection.h"
 
@@ -36,7 +37,8 @@ class NoScreenMirrorPlugin : public flutter::Plugin {
                                        DWORD time);
 
   std::string BuildEventJson(bool is_screen_mirrored,
-                             bool is_external_connected, int display_count);
+                             bool is_external_connected, int display_count,
+                             bool is_screen_shared);
 
   flutter::PluginRegistrarWindows* registrar_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>

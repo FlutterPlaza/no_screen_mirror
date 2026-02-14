@@ -12,7 +12,10 @@ class MockNoScreenMirrorPlatform
   Stream<MirrorSnapshot> get mirrorStream => const Stream.empty();
 
   @override
-  Future<void> startListening() {
+  Future<void> startListening({
+    Duration pollingInterval = const Duration(seconds: 2),
+    List<String> customScreenSharingProcesses = const [],
+  }) {
     return Future.value();
   }
 
@@ -52,6 +55,34 @@ void main() {
 
   test('startListening', () async {
     expect(NoScreenMirror.instance.startListening(), completes);
+  });
+
+  test('startListening with custom polling interval', () async {
+    expect(
+      NoScreenMirror.instance.startListening(
+        pollingInterval: const Duration(seconds: 5),
+      ),
+      completes,
+    );
+  });
+
+  test('startListening with custom processes', () async {
+    expect(
+      NoScreenMirror.instance.startListening(
+        customScreenSharingProcesses: ['myapp', 'otherapp'],
+      ),
+      completes,
+    );
+  });
+
+  test('startListening with all options', () async {
+    expect(
+      NoScreenMirror.instance.startListening(
+        pollingInterval: const Duration(seconds: 3),
+        customScreenSharingProcesses: ['custom.exe'],
+      ),
+      completes,
+    );
   });
 
   test('stopListening', () async {

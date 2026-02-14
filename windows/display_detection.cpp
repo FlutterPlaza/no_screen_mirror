@@ -1,5 +1,6 @@
 #include "display_detection.h"
 
+#include <tlhelp32.h>
 #include <wingdi.h>
 
 // Static instance pointer for the timer callback (no this-capture in WinAPI
@@ -29,8 +30,44 @@ static BOOL CALLBACK MonitorEnumProc(HMONITOR monitor, HDC hdc, LPRECT rect,
   return TRUE;
 }
 
+static const wchar_t* kDefaultProcessNames[] = {
+    L"Zoom.exe",    L"CptHost.exe", L"Teams.exe",  L"ms-teams.exe",
+    L"slack.exe",   L"Discord.exe", L"obs64.exe",  L"obs32.exe",
+    L"ffmpeg.exe",
+};
+
+bool DisplayDetection::IsScreenSharingProcessRunning() {
+  HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (snapshot == INVALID_HANDLE_VALUE) return false;
+
+  PROCESSENTRY32W entry;
+  entry.dwSize = sizeof(entry);
+
+  if (Process32FirstW(snapshot, &entry)) {
+    do {
+      // Check default process names
+      for (const auto* name : kDefaultProcessNames) {
+        if (_wcsicmp(entry.szExeFile, name) == 0) {
+          CloseHandle(snapshot);
+          return true;
+        }
+      }
+      // Check custom process names
+      for (const auto& name : custom_processes_) {
+        if (_wcsicmp(entry.szExeFile, name.c_str()) == 0) {
+          CloseHandle(snapshot);
+          return true;
+        }
+      }
+    } while (Process32NextW(snapshot, &entry));
+  }
+
+  CloseHandle(snapshot);
+  return false;
+}
+
 DisplayDetection::Result DisplayDetection::Scan() {
-  Result result{false, false, 1};
+  Result result{false, false, 1, false};
 
   // 1. Count monitors via EnumDisplayMonitors
   int monitor_count = 0;
@@ -67,6 +104,8 @@ DisplayDetection::Result DisplayDetection::Scan() {
     }
   }
 
+  result.is_screen_shared = IsScreenSharingProcessRunning();
+
   return result;
 }
 
@@ -83,7 +122,8 @@ void CALLBACK DisplayDetection::PollTimerProc(HWND /*hwnd*/, UINT /*msg*/,
   Result current = self->Scan();
   if (current.is_external_connected != self->last_result_.is_external_connected ||
       current.is_screen_mirrored != self->last_result_.is_screen_mirrored ||
-      current.display_count != self->last_result_.display_count) {
+      current.display_count != self->last_result_.display_count ||
+      current.is_screen_shared != self->last_result_.is_screen_shared) {
     self->last_result_ = current;
     if (self->callback_) {
       self->callback_(current);
@@ -91,8 +131,11 @@ void CALLBACK DisplayDetection::PollTimerProc(HWND /*hwnd*/, UINT /*msg*/,
   }
 }
 
-void DisplayDetection::Start() {
+void DisplayDetection::Start(UINT poll_interval_ms,
+                             const std::vector<std::wstring>& custom_processes) {
   if (timer_id_ != 0) return;
+
+  custom_processes_ = custom_processes;
 
   // Initial scan
   last_result_ = Scan();
@@ -100,8 +143,9 @@ void DisplayDetection::Start() {
     callback_(last_result_);
   }
 
-  // 2s poll timer
-  timer_id_ = SetTimer(nullptr, 0, 2000, PollTimerProc);
+  // Configurable poll timer
+  if (poll_interval_ms == 0) poll_interval_ms = 2000;
+  timer_id_ = SetTimer(nullptr, 0, poll_interval_ms, PollTimerProc);
 }
 
 void DisplayDetection::Stop() {

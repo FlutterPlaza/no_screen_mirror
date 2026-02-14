@@ -20,8 +20,15 @@ class MethodChannelNoScreenMirror extends NoScreenMirrorPlatform {
   }
 
   @override
-  Future<void> startListening() {
-    return methodChannel.invokeMethod<void>(startListeningConst);
+  Future<void> startListening({
+    Duration pollingInterval = const Duration(seconds: 2),
+    List<String> customScreenSharingProcesses = const [],
+  }) {
+    return methodChannel.invokeMethod<void>(startListeningConst, {
+      'pollingIntervalMs': pollingInterval.inMilliseconds,
+      if (customScreenSharingProcesses.isNotEmpty)
+        'customProcesses': customScreenSharingProcesses,
+    });
   }
 
   @override

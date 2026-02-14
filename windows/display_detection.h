@@ -4,6 +4,8 @@
 #include <windows.h>
 
 #include <functional>
+#include <string>
+#include <vector>
 
 // Scans connected displays using Win32 APIs.
 // Reports whether an external display is connected, whether wireless mirroring
@@ -14,6 +16,7 @@ class DisplayDetection {
     bool is_external_connected;
     bool is_screen_mirrored;
     int display_count;
+    bool is_screen_shared;
   };
 
   using ChangeCallback = std::function<void(const Result&)>;
@@ -21,7 +24,8 @@ class DisplayDetection {
   explicit DisplayDetection(ChangeCallback callback);
   ~DisplayDetection();
 
-  void Start();
+  void Start(UINT poll_interval_ms = 2000,
+             const std::vector<std::wstring>& custom_processes = {});
   void Stop();
 
  private:
@@ -29,10 +33,12 @@ class DisplayDetection {
                                      DWORD time);
 
   Result Scan();
+  bool IsScreenSharingProcessRunning();
 
   ChangeCallback callback_;
   UINT_PTR timer_id_ = 0;
-  Result last_result_{false, false, 1};
+  Result last_result_{false, false, 1, false};
+  std::vector<std::wstring> custom_processes_;
 };
 
 #endif  // DISPLAY_DETECTION_H_
