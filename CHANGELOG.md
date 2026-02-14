@@ -1,4 +1,4 @@
-## 0.1.0
+## 0.1.1
 
 * **Screen sharing detection** across all platforms via `isScreenShared` on `MirrorSnapshot`.
   * iOS 11+: `UIScreen.main.isCaptured` (covers AirPlay, screen recording, screen sharing).

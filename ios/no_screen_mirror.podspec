@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'no_screen_mirror'
-  s.version          = '0.1.0'
+  s.version          = '0.1.1'
   s.summary          = 'Flutter plugin to detect screen mirroring and external display connections.'
   s.description      = <<-DESC
 Flutter plugin to detect screen mirroring (AirPlay, Miracast) and external display connections (HDMI, USB-C).
