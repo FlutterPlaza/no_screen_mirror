@@ -1,16 +1,21 @@
-# no_screen_mirror_example
+# no_screen_mirror example
 
-Demonstrates how to use the no_screen_mirror plugin.
+Demonstrates how to use the `no_screen_mirror` plugin to detect screen mirroring, external displays, and screen sharing.
 
-## Getting Started
+## Running the example
 
-This project is a starting point for a Flutter application.
+```bash
+cd example
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+## What the example shows
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- **Live status stream** — Listens for `MirrorSnapshot` updates and displays the current mirroring/sharing state.
+- **Warning banners** — Shows a `MaterialBanner` when screen mirroring or screen sharing is detected.
+- **Platform capabilities** — Displays what the current platform can detect (mirroring, external displays, screen sharing).
+- **Configurable polling** — Starts listening with a custom polling interval and optional custom process names.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Testing
+
+Connect an external display, start AirPlay/Miracast mirroring, or launch a screen-sharing app (Zoom, Teams, etc.) to see the status update in real time.
