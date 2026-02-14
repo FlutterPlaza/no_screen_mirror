@@ -7,9 +7,15 @@ import 'package:web/web.dart' as web;
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
+/// Web implementation of [NoScreenMirrorPlatform].
+///
+/// Detects external displays using the `screen.isExtended` API (Chromium 100+)
+/// and listens for `visibilitychange` events.
 class NoScreenMirrorWeb extends NoScreenMirrorPlatform {
+  /// Creates a [NoScreenMirrorWeb] instance.
   NoScreenMirrorWeb();
 
+  /// Registers this implementation as the web platform instance.
   static void registerWith(Registrar registrar) {
     NoScreenMirrorPlatform.instance = NoScreenMirrorWeb();
   }

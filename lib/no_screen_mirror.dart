@@ -3,12 +3,26 @@ import 'package:no_screen_mirror/mirror_snapshot.dart';
 
 import 'no_screen_mirror_platform_interface.dart';
 
+/// Main entry point for the no_screen_mirror plugin.
+///
+/// Provides a stream-based API to detect screen mirroring, external displays,
+/// and screen sharing across all supported platforms.
+///
+/// ```dart
+/// final plugin = NoScreenMirror.instance;
+/// await plugin.startListening();
+/// plugin.mirrorStream.listen((snapshot) {
+///   print('Mirrored: ${snapshot.isScreenMirrored}');
+/// });
+/// ```
 class NoScreenMirror implements NoScreenMirrorPlatform {
   final _instancePlatform = NoScreenMirrorPlatform.instance;
   NoScreenMirror._();
 
+  /// Returns a [NoScreenMirror] instance.
   static NoScreenMirror get instance => NoScreenMirror._();
 
+  /// Returns the detection capabilities of the current platform.
   static MirrorCapabilities get platformCapabilities =>
       MirrorCapabilities.current;
 

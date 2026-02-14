@@ -1,9 +1,20 @@
+/// A point-in-time snapshot of the device's screen mirroring and display state.
+///
+/// Emitted by [NoScreenMirror.mirrorStream] whenever the state changes.
 class MirrorSnapshot {
+  /// Whether the screen is being mirrored (e.g. via AirPlay or Miracast).
   final bool isScreenMirrored;
+
+  /// Whether an external display is connected (e.g. HDMI or USB-C).
   final bool isExternalDisplayConnected;
+
+  /// The total number of displays detected, including the built-in screen.
   final int displayCount;
+
+  /// Whether the screen is being shared in a video call or recording.
   final bool isScreenShared;
 
+  /// Creates a [MirrorSnapshot] with the given display state values.
   MirrorSnapshot({
     required this.isScreenMirrored,
     required this.isExternalDisplayConnected,
@@ -11,6 +22,10 @@ class MirrorSnapshot {
     this.isScreenShared = false,
   });
 
+  /// Creates a [MirrorSnapshot] from a platform channel map.
+  ///
+  /// Missing or null values default to `false` for booleans and `1` for
+  /// [displayCount].
   factory MirrorSnapshot.fromMap(Map<String, dynamic> map) {
     return MirrorSnapshot(
       isScreenMirrored: map['is_screen_mirrored'] as bool? ?? false,
@@ -21,6 +36,7 @@ class MirrorSnapshot {
     );
   }
 
+  /// Converts this snapshot to a map suitable for platform channel serialization.
   Map<String, dynamic> toMap() {
     return {
       'is_screen_mirrored': isScreenMirrored,

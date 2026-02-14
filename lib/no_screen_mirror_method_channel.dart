@@ -7,9 +7,16 @@ import 'package:no_screen_mirror/mirror_snapshot.dart';
 
 import 'no_screen_mirror_platform_interface.dart';
 
+/// Method channel implementation of [NoScreenMirrorPlatform].
+///
+/// Communicates with native platform code via a [MethodChannel] for commands
+/// and an [EventChannel] for streaming mirror state updates.
 class MethodChannelNoScreenMirror extends NoScreenMirrorPlatform {
+  /// The method channel used to invoke native methods.
   @visibleForTesting
   final methodChannel = const MethodChannel(mirrorMethodChannel);
+
+  /// The event channel used to receive native mirror state events.
   @visibleForTesting
   final eventChannel = const EventChannel(mirrorEventChannel);
 

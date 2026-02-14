@@ -9,10 +9,13 @@ Flutter plugin to detect screen mirroring (AirPlay, Miracast) and external displ
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'FlutterPlaza' => 'dev@flutterplaza.com' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*'
+  s.source_files = 'no_screen_mirror/Sources/no_screen_mirror/**/*.swift'
   s.dependency 'FlutterMacOS'
 
   s.platform = :osx, '10.14'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
   s.swift_version = '5.0'
+  s.resource_bundles = {
+    'no_screen_mirror_privacy' => ['no_screen_mirror/Sources/no_screen_mirror/PrivacyInfo.xcprivacy']
+  }
 end
