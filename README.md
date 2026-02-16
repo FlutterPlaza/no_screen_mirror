@@ -2,6 +2,10 @@
 
 A Flutter plugin to detect screen mirroring (AirPlay, Miracast), external display connections (HDMI, USB-C, DisplayPort, VGA, DVI), and screen sharing in video calls.
 
+## Demo
+
+![No Screen Mirror Demo](doc/gif/no_screen_mirror.gif)
+
 ## Features
 
 - Detect screen mirroring (AirPlay on iOS/macOS, Miracast on Android/Windows)
@@ -20,7 +24,7 @@ A Flutter plugin to detect screen mirroring (AirPlay, Miracast), external displa
 |----------|:---------:|:----------------:|:--------------:|------------------|
 | Android  | Yes (Miracast) | Yes | Yes (API 34+) | DisplayManager + MediaRouter + ScreenCaptureCallback |
 | iOS      | Yes (AirPlay) | Yes | Yes (iOS 11+) | UIScreen notifications + `isCaptured` |
-| macOS    | Yes | Yes | Yes | CoreGraphics + process detection |
+| macOS    | Yes | Yes | Yes | CoreGraphics + CGWindowList + process detection |
 | Linux    | No | Yes | Yes | `/sys/class/drm` + `/proc` scanning |
 | Windows  | Yes (Miracast) | Yes | Yes | Win32 Display Config + process scanning |
 | Web      | No | Chromium 100+ | No | `Screen.isExtended` API |
@@ -31,7 +35,7 @@ Add `no_screen_mirror` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  no_screen_mirror: ^0.1.0
+  no_screen_mirror: ^0.1.2
 ```
 
 Then run:
@@ -193,7 +197,7 @@ Uses `UIScreen` notifications for display connection events and `isCaptured` (iO
 
 ### macOS
 
-Uses CoreGraphics APIs (`CGDisplayIsBuiltin`, `CGDisplayMirrorsDisplay`) to distinguish external displays and detect mirroring. Screen sharing is detected by checking running application bundle IDs (Zoom, Teams, Slack, Discord, OBS, QuickTime, Loom). Custom bundle IDs can be added via `customScreenSharingProcesses`.
+Uses CoreGraphics APIs (`CGGetOnlineDisplayList`, `CGDisplayMirrorsDisplay`) to detect external displays and mirroring (including Luna Display). Screen sharing is detected via the Control Center `AudioVideoModule` indicator (catches all screen capture including browser-based sharing like Google Meet), `CGSessionCopyCurrentDictionary` for system-level screen sharing, and running application bundle ID checks. Custom bundle IDs can be added via `customScreenSharingProcesses`.
 
 ### Linux
 
@@ -210,7 +214,7 @@ Uses the `Screen.isExtended` API available in Chromium 100+. Safari and Firefox 
 ## Built-in Screen Sharing Process Lists
 
 ### macOS (Bundle IDs)
-`us.zoom.xos`, `com.microsoft.teams`, `com.microsoft.teams2`, `com.tinyspeck.slackmacgap`, `com.hnc.Discord`, `com.obsproject.obs-studio`, `com.apple.QuickTimePlayerX`, `com.loom.desktop`
+`us.zoom.xos`, `com.microsoft.teams`, `com.microsoft.teams2`, `com.tinyspeck.slackmacgap`, `com.hnc.Discord`, `com.obsproject.obs-studio`, `com.apple.QuickTimePlayerX`, `com.loom.desktop`, `com.apple.FaceTime`, `com.apple.ScreenSharing`, `com.cisco.webexmeetingsapp`, `com.webex.meetingmanager`, `com.gotomeeting`, `com.logmein.GoToMeeting`, `com.ringcentral.RingCentral`, `com.bluejeans.BlueJeans`, `com.whereby.app`, `com.pop.pop.app`, `com.crowdcast.Crowdcast`, `com.around.Around`, `com.livestorm.app`
 
 ### Linux (Process Names)
 `zoom`, `teams`, `teams-for-linux`, `slack`, `discord`, `obs`, `ffmpeg`, `simplescreenrecorder`, `kazam`, `peek`, `recordmydesktop`, `vokoscreen`

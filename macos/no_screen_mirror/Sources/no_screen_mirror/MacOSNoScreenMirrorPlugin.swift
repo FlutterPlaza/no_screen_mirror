@@ -22,7 +22,20 @@ public class MacOSNoScreenMirrorPlugin: NSObject, FlutterPlugin, FlutterStreamHa
         "com.hnc.Discord",
         "com.obsproject.obs-studio",
         "com.apple.QuickTimePlayerX",
-        "com.loom.desktop"
+        "com.loom.desktop",
+        "com.apple.FaceTime",
+        "com.apple.ScreenSharing",
+        "com.cisco.webexmeetingsapp",
+        "com.webex.meetingmanager",
+        "com.gotomeeting",
+        "com.logmein.GoToMeeting",
+        "com.ringcentral.RingCentral",
+        "com.bluejeans.BlueJeans",
+        "com.whereby.app",
+        "com.pop.pop.app",
+        "com.crowdcast.Crowdcast",
+        "com.around.Around",
+        "com.livestorm.app",
     ]
 
     private var customScreenSharingBundleIDs: Set<String> = []
@@ -95,34 +108,91 @@ public class MacOSNoScreenMirrorPlugin: NSObject, FlutterPlugin, FlutterStreamHa
     }
 
     private func isScreenSharingActive() -> Bool {
+        // Check macOS system-level screen sharing via session dictionary.
+        // This detects macOS built-in Screen Sharing (Remote Management).
+        if let sessionDict = CGSessionCopyCurrentDictionary() as? [String: Any],
+           let isShared = sessionDict["CGSSessionScreenIsShared"] as? Bool,
+           isShared {
+            return true
+        }
+
+        // Check if known screen sharing apps are running
         let allBundleIDs = MacOSNoScreenMirrorPlugin.defaultScreenSharingBundleIDs
             .union(customScreenSharingBundleIDs)
 
-        for app in NSWorkspace.shared.runningApplications {
+        let runningApps = NSWorkspace.shared.runningApplications
+        for app in runningApps {
             if let bundleID = app.bundleIdentifier,
                allBundleIDs.contains(bundleID) {
                 return true
             }
         }
+
+        // Detect screen capture via the macOS Control Center indicator.
+        // When any app (including browsers) captures the screen, macOS
+        // shows an "AudioVideoModule" status bar item in Control Center.
+        // This reliably detects browser-based screen sharing (Google Meet,
+        // Zoom web, etc.) as well as any other screen capture.
+        if isScreenCaptureIndicatorVisible() {
+            return true
+        }
+
+        return false
+    }
+
+    /// Checks CGWindowList for the Control Center "AudioVideoModule"
+    /// window, which macOS shows whenever screen capture/recording is active.
+    private func isScreenCaptureIndicatorVisible() -> Bool {
+        guard let windowList = CGWindowListCopyWindowInfo(
+            [.optionOnScreenOnly, .excludeDesktopElements],
+            kCGNullWindowID
+        ) as? [[String: Any]] else {
+            return false
+        }
+
+        for window in windowList {
+            let ownerName = window[kCGWindowOwnerName as String] as? String ?? ""
+            let windowName = window[kCGWindowName as String] as? String ?? ""
+
+            if ownerName == "Control Center" && windowName == "AudioVideoModule" {
+                return true
+            }
+        }
+
         return false
     }
 
     private func updateState() {
-        let screens = NSScreen.screens
-        let displayCount = screens.count
         var isExternalDisplayConnected = false
         var isScreenMirrored = false
 
-        for screen in screens {
-            let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID ?? 0
+        // Use CGGetOnlineDisplayList to get ALL displays, including mirrored ones.
+        // NSScreen.screens excludes mirrored displays, so it can't detect mirroring.
+        var onlineDisplays = [CGDirectDisplayID](repeating: 0, count: 16)
+        var onlineCount: UInt32 = 0
+        CGGetOnlineDisplayList(16, &onlineDisplays, &onlineCount)
 
-            if CGDisplayIsBuiltin(screenNumber) == 0 {
+        var activeCount: UInt32 = 0
+        CGGetActiveDisplayList(0, nil, &activeCount)
+
+        let displayCount = Int(onlineCount)
+
+        for i in 0..<Int(onlineCount) {
+            let displayID = onlineDisplays[i]
+
+            if CGDisplayIsBuiltin(displayID) == 0 {
                 isExternalDisplayConnected = true
             }
 
-            if CGDisplayMirrorsDisplay(screenNumber) != kCGNullDirectDisplay {
+            if CGDisplayMirrorsDisplay(displayID) != kCGNullDirectDisplay {
                 isScreenMirrored = true
             }
+        }
+
+        // If online displays > active displays, mirroring is active
+        // (active list excludes mirrors, online list includes them)
+        if onlineCount > activeCount {
+            isScreenMirrored = true
         }
 
         let isScreenShared = isScreenSharingActive()

@@ -132,6 +132,11 @@ class NoScreenMirrorPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Act
                 override fun onRouteChanged(router: MediaRouter?, info: MediaRouter.RouteInfo?) {
                     updateState()
                 }
+                override fun onRouteAdded(router: MediaRouter?, info: MediaRouter.RouteInfo?) {}
+                override fun onRouteRemoved(router: MediaRouter?, info: MediaRouter.RouteInfo?) {}
+                override fun onRouteGrouped(router: MediaRouter?, info: MediaRouter.RouteInfo?, group: MediaRouter.RouteGroup?, index: Int) {}
+                override fun onRouteUngrouped(router: MediaRouter?, info: MediaRouter.RouteInfo?, group: MediaRouter.RouteGroup?) {}
+                override fun onRouteVolumeChanged(router: MediaRouter?, info: MediaRouter.RouteInfo?) {}
             }
             mediaRouter?.addCallback(MediaRouter.ROUTE_TYPE_LIVE_VIDEO, mediaRouterCallback)
         }

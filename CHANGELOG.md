@@ -1,3 +1,13 @@
+## 0.1.2
+
+* **Improved macOS screen mirroring detection** — uses `CGGetOnlineDisplayList` instead of `NSScreen.screens` to detect mirrored displays (including Luna Display), since macOS excludes mirrors from `NSScreen.screens`.
+* **Improved macOS screen sharing detection** — detects the Control Center `AudioVideoModule` indicator via `CGWindowListCopyWindowInfo`, which reliably catches all screen capture including browser-based sharing (Google Meet, Zoom web, etc.).
+* **macOS system-level screen sharing** — added `CGSessionCopyCurrentDictionary` check for built-in Screen Sharing / Remote Management.
+* **Expanded macOS bundle ID list** — added FaceTime, Screen Sharing, WebEx, GoToMeeting, RingCentral, BlueJeans, Whereby, Pop, Around, and Livestorm.
+* **Fixed Android build** — added missing `MediaRouter.Callback` abstract method overrides (`onRouteAdded`, `onRouteRemoved`, `onRouteGrouped`, `onRouteUngrouped`, `onRouteVolumeChanged`).
+* **Added pubspec topics** — `screen-mirroring`, `security`, `screen-capture`, `drm`, `screen-sharing`.
+* **Added demo GIF** to README.
+
 ## 0.1.1
 
 * **Screen sharing detection** across all platforms via `isScreenShared` on `MirrorSnapshot`.

@@ -1,6 +1,6 @@
 PODS:
   - FlutterMacOS (1.0.0)
-  - no_screen_mirror (0.1.0):
+  - no_screen_mirror (0.1.1):
     - FlutterMacOS
 
 DEPENDENCIES:
@@ -15,7 +15,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  no_screen_mirror: 23103f464bb7250896e03f464892b70b63300551
+  no_screen_mirror: 958e167283453ec7e219760783a140ec47de2102
 
 PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009
 
